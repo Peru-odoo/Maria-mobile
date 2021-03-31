@@ -927,7 +927,7 @@ class MobikulApi(WebServices):
             if response.get('addons', {}).get('wishlist'):
                 result = {'success': False, 'message': 'Wishlist Id Not Found'}
                 try:
-                    wishlist = request.env['product.wishlist'].search(
+                    wishlist = request.env['product.wishlist'].sudo().search(
                         [('id', '=', wishlist_id), ('partner_id', '=', response.get('customerId'))])
                     if wishlist:
                         wishlist.sudo().unlink()
