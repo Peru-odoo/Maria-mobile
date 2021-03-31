@@ -242,7 +242,7 @@ class Mobikul(models.Model):
                 response['accessDenied'] = True
         if user:
             # Remove the superuser privilege and assign the respective user rights
-            user = user.with_user(user)
+            user = user.with_user(user).sudo()
             Partner = user.partner_id
             if Partner:
                 last_order = Partner.last_mobikul_so_id
