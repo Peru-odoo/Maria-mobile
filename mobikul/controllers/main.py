@@ -930,7 +930,7 @@ class MobikulApi(WebServices):
                     wishlist = request.env['product.wishlist'].search(
                         [('id', '=', wishlist_id), ('partner_id', '=', response.get('customerId'))])
                     if wishlist:
-                        wishlist.unlink()
+                        wishlist.sudo().unlink()
                         result.update({'success': True,
                                        'message': 'Item removed'
                                        })
