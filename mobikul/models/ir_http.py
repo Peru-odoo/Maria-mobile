@@ -8,7 +8,8 @@
 from odoo import api, models
 from odoo import SUPERUSER_ID
 from odoo.http import request
-
+import logging
+_logger = logging.getLogger(__name__)
 
 class Http(models.AbstractModel):
     _inherit = 'ir.http'
@@ -17,7 +18,7 @@ class Http(models.AbstractModel):
     _geoip_resolver = None
 
     # @classmethod
-    def binary_content(cls, xmlid=None, model='ir.attachment', id=None, field='datas',
+    def binary_content(self, xmlid=None, model='ir.attachment', id=None, field='datas',
                        unique=False, filename=None, filename_field='datas_fname', download=False,
                        mimetype=None, default_mimetype='application/octet-stream',
                        access_token=None):
@@ -29,10 +30,12 @@ class Http(models.AbstractModel):
             obj = env[model].browse(int(id))
         if obj and 'is_mobikul_available' in obj._fields:
             if env[obj._name].sudo().search([('id', '=', obj.id), ('is_mobikul_available', '=', True)]):
-                env = env(user=SUPERUSER_ID)
-        if obj and obj._name == "res.partner" and field in ("image", "profile_banner", "profile_image", "banner_image"):
-            env = env(user=SUPERUSER_ID)
-        return super(Http, cls).binary_content(
+                self = self.sudo()
+        if obj and obj._name == "res.partner" and field in ("image_1920", "profile_banner", "profile_image", "banner_image","id"):
+            self = self.sudo()
+        if obj and obj._name == "product.template" and field in ("image_1920"):
+            self = self.sudo()
+        return super(Http, self).binary_content(
             xmlid=xmlid, model=model, id=id, field=field, unique=unique, filename=filename,
             filename_field=filename_field, download=download, mimetype=mimetype,
             default_mimetype=default_mimetype, access_token=access_token)
