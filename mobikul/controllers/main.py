@@ -79,6 +79,8 @@ class MobikulApi(WebServices):
                     createNotification = True
             if response['success']:
                 context = response.get("context")
+                homepage = {}
+                homepage.update(self._languageData(Mobikul))
                 login = {}
                 if self._mData.get('authUserId', False):
                     cred = {'authUserId': self._mData.get(
@@ -91,6 +93,7 @@ class MobikulApi(WebServices):
                 del login['context']
                 response.update({"login": login, "cred": cred})
                 homepage = Mobikul.homePage(self._mData, context)
+                homepage.update(self._languageData(Mobikul))
                 response.update({"homepage": homepage})
             self._tokenUpdate(customer_id=response.get('customerId'))
             if response.get("message", "").startswith("Created"):
