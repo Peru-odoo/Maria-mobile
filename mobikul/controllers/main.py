@@ -320,7 +320,7 @@ class MobikulApi(WebServices):
     def getMyOrder(self, order_id, **kwargs):
         response = self._authenticate(True, **kwargs)
         if response.get('success'):
-            orderObj = request.env['sale.order'].with_user(request.context.get('user'))
+            orderObj = request.env['sale.order'].with_user(request.context.get('user')).sudo()
             Order = orderObj.search([("id","=",order_id)])
             state_value = dict(orderObj.fields_get(["state"],['selection'])['state']["selection"])
             if Order:
