@@ -412,17 +412,17 @@ class MobikulApi(WebServices):
             response.update(result)
         return self._response('orders', response)
 
-    # @route('/mobikul/my/address/default/<int:address_id>', csrf=False, type='http', auth="none", methods=['PUT'])
-    # def setDefaultAddress(self, address_id, **kwargs):
-    #     response = self._authenticate(True, **kwargs)
-    #     if response.get('success'):
-    #         Partner = response.get("context").get("partner")
-    #         Address = Partner.browse(address_id)
-    #         if Address:
-    #             response.update({'message': 'Updated successfully.'})
-    #         else:
-    #             response.update({'success': False, 'message': 'Address not found !!!'})
-    #     return self._response('address', response)
+    @route('/mobikul/my/address/default/<int:address_id>', csrf=False, type='http', auth="none", methods=['PUT'])
+    def setDefaultAddress(self, address_id, **kwargs):
+        response = self._authenticate(True, **kwargs)
+        if response.get('success'):
+            Partner = response.get("context").get("partner")
+            Address = Partner.browse(address_id)
+            if Address:
+                response.update({'message': 'Updated successfully.'})
+            else:
+                response.update({'success': False, 'message': 'Address not found !!!'})
+        return self._response('address', response)
 
     @route('/mobikul/my/address/new', csrf=False, type='http', auth="none", methods=['POST'])
     def addMyAddress(self, **kwargs):
