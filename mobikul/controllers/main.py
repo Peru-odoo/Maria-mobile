@@ -161,7 +161,7 @@ class MobikulApi(WebServices):
                     'offset': self._mData.get('offset', 0),
                     'order': self._mData.get('order', None),
                 })
-                response.update(PSlider.get_product_data(context))
+                response.update(PSlider.sudo().get_product_data(context))
                 response['message'] = "Product slider ."
             else:
                 response.update({'success': False, 'message': 'Product Slider not found !!!'})
