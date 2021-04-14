@@ -187,7 +187,7 @@ class WebServices(Controller):
         return (name or "") + (name and "\n" or "") + address
 
     def _checkFullAddress(self, Partner):
-        mandatory_fields = ["street", "city", "state_id", "zip", "country_id"]
+        mandatory_fields = ["street", "city", "state_id", "country_id"]
         val = [True if mf == "state_id" and not Partner.country_id.state_ids else getattr(
             Partner, mf) for mf in mandatory_fields]
         return all(val)
