@@ -255,7 +255,7 @@ class MobikulApi(WebServices):
                 if Template.product_variant_count > 1:
                     for var in Template.product_variant_ids:
                         comb_info = Template._get_combination_info(combination=False, product_id=var.id,add_qty=1, pricelist=local.get("pricelist"), parent_combination=False, only_template=False)
-                        data = mobikul_get_qty_availabilty(Template.product_variant_id)
+                        data = mobikul_get_qty_availabilty(var)
                         temp = {
                             "productId": var.id,
                             'images': [_get_image_url(self.base_url, 'product.product', var.id, 'image_1920', var.write_date)] + prd_images,
