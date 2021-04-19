@@ -7,7 +7,7 @@
 from pdb import set_trace
 from odoo.addons.mobikul.tool.service import WebServices
 from odoo.addons.http_routing.models.ir_http import slug
-from odoo.addons.mobikul.tool.help import _displayWithCurrency, _get_image_url, _changePricelist, remove_htmltags, AQUIRER_REF_CODES, STATUS_MAPPING, _get_next_reference,EMPTY_ADDRESS
+from odoo.addons.mobikul.tool.help import _displayWithCurrency, _get_image_url,mobikul_get_qty_availabilty, _changePricelist, remove_htmltags, AQUIRER_REF_CODES, STATUS_MAPPING, _get_next_reference,EMPTY_ADDRESS
 from odoo import _
 from odoo.http import request, route
 from odoo.fields import Datetime, Date, Selection
@@ -230,6 +230,9 @@ class MobikulApi(WebServices):
                     result['attributes'].append(temp)
 
                 comb_info = Template._get_combination_info(combination=False, product_id=False,add_qty=1, pricelist=local.get("pricelist"), parent_combination=False, only_template=False)
+                data = mobikul_get_qty_availabilty(Template.product_variant_id)
+                result.update(data)
+                
                 result.update({
                     'priceUnit'		: _displayWithCurrency(local.get('lang_obj'), comb_info['has_discounted_price'] and comb_info['list_price'] or comb_info['price'], local.get('currencySymbol'), local.get('currencyPosition')),
                     'priceReduce'	: comb_info['has_discounted_price'] and _displayWithCurrency(local.get('lang_obj'), comb_info['price'], local.get('currencySymbol'), local.get('currencyPosition')) or "",
@@ -252,6 +255,7 @@ class MobikulApi(WebServices):
                 if Template.product_variant_count > 1:
                     for var in Template.product_variant_ids:
                         comb_info = Template._get_combination_info(combination=False, product_id=var.id,add_qty=1, pricelist=local.get("pricelist"), parent_combination=False, only_template=False)
+                        data = mobikul_get_qty_availabilty(Template.product_variant_id)
                         temp = {
                             "productId": var.id,
                             'images': [_get_image_url(self.base_url, 'product.product', var.id, 'image_1920', var.write_date)] + prd_images,
@@ -261,6 +265,7 @@ class MobikulApi(WebServices):
                             "combinations": [],
                             "addedToWishlist": var.id in wishlist,
                         }
+                        temp.update(data)
                         for ptavi in var.product_template_attribute_value_ids:
                             temp["combinations"].append({
                                 "valueId": ptavi.product_attribute_value_id and ptavi.product_attribute_value_id.id,
@@ -593,6 +598,7 @@ class MobikulApi(WebServices):
                                 }
                                 result.update({"delivery": shippingMethod})
                             else:
+                                data = mobikul_get_qty_availabilty(item.product_id)
                                 temp = {
                                     "lineId": item.id,
                                     "templateId": item.product_id and item.product_id.product_tmpl_id.id or "",
@@ -604,6 +610,7 @@ class MobikulApi(WebServices):
                                     "total": _displayWithCurrency(local.get('lang_obj'), item.price_subtotal, local.get('currencySymbol'), local.get('currencyPosition')),
                                     "discount": item.discount and "(%d%% OFF)" % item.discount or "",
                                 }
+                                temp.update(data)
                                 result['items'].append(temp)
                         if not len(result['items']):
                             result['message'] = _('Your Shopping Bag is empty.')

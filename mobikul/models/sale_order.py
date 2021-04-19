@@ -7,8 +7,9 @@
 import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
-from odoo.http import request
 _logger = logging.getLogger(__name__)
+from odoo.http import request
+from odoo.exceptions import UserError
 
 
 class ResPartner(models.Model):

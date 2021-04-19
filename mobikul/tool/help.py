@@ -12,6 +12,21 @@ from datetime import datetime
 import logging
 _logger = logging.getLogger(__name__)
 
+def mobikul_get_qty_availabilty(product):
+    if (product.inventory_availability in ["always","threshold"]):
+        forecast = product.virtual_available
+        result = {"show_buy_button":False, "qty_available":0}
+        if product.inventory_availability == "always":
+            if forecast <= 0:
+                return result
+            else:
+                result = {"show_buy_button":True, "qty_available":forecast}
+        elif product.inventory_availability == "threshold":
+            if product.available_threshold >=1:
+                result = {"show_buy_button":True, "qty_available":product.available_threshold}
+        return result
+    else:
+        return {"show_buy_button":True, "qty_available":"Inf"}
 
 def _changePricelist(pricelist_id):
     return{
