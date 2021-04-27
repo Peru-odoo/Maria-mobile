@@ -335,10 +335,8 @@ class WebServices(Controller):
 
     def _sendPaymentAcknowledge(self, last_order, Partner, txn, context):
         result = {}
-        if txn.state != 'error':
+        if txn.state not in ['error','cancel']:
             context.update({"send_email": True})
-            last_order.with_context(context).action_confirm()
-            last_order._send_order_confirmation_mail()
             Partner.last_mobikul_so_id = False
             self._pushNotification(self._mData.get("fcmToken", ""), condition='orderplaced',
                                    customer_id=Partner.id)
@@ -351,21 +349,29 @@ class WebServices(Controller):
                 'transaction_id': txn.id,
             })
             if txn.state in ['pending', 'draft']:
+                last_order.write({'state': 'sent'})
                 result.update({'txn_msg': remove_htmltags(txn.acquirer_id.pending_msg)})
             elif txn.state == 'done':
+                last_order.with_context(context).action_confirm()
+                last_order._send_order_confirmation_mail()
                 result.update({'txn_msg': remove_htmltags(txn.acquirer_id.done_msg)})
-            elif txn.state == 'cancel':
-                result.update({'txn_msg': remove_htmltags(txn.acquirer_id.cancel_msg)})
             else:
                 result.update({'txn_msg': 'No transaction state found..'})
-
         else:
             result.update({
-                'transaction_id': txn.id,
-                'success': False,
-                'message': "ERROR",
-                'txn_msg': txn.state_message or "ERROR"
-            })
+                    'transaction_id': txn.id,
+                    'success': False,
+                })
+            if txn.state == 'error':
+                result.update({
+                    'message': "ERROR",
+                    'txn_msg': txn.state_message or "ERROR"
+                })
+            else:
+                result.update({
+                    'txn_msg': remove_htmltags(txn.acquirer_id.cancel_msg),
+                    "message":"CANCEL"
+                })
         return result
 
     def placeOrder(self, context):
