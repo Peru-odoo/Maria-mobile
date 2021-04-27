@@ -563,6 +563,25 @@ class MobikulApi(WebServices):
             result.append(wishlist.product_id.id)
         return result
 
+    def get_present_qty(self, product_id,order, line_id=None):
+        sale_order_obj = request.env['sale.order.line'].sudo()
+        if line_id:
+            present_qty = sale_order_obj.browse([line_id]).product_uom_qty
+            return present_qty
+        else:
+            present_qty = 0
+            #order = request.website.sale_get_order()
+            if order:
+                order_lines = order.website_order_line
+            else:
+                order_lines = []
+            for line in order_lines:
+                line_product = sale_order_obj.browse([line.id]).product_id
+                if line_product.id == int(product_id):
+                    present_qty = sale_order_obj.browse([line.id]).product_uom_qty
+                    break
+            return present_qty
+
     @route(['/mobikul/mycart', '/mobikul/mycart/<int:line_id>'], csrf=False, type='http', auth="none", methods=['POST', 'PUT', 'DELETE'])
     def getMyCart(self, line_id=0, **kwargs):
         response = self._authenticate(True, **kwargs)
@@ -620,8 +639,12 @@ class MobikulApi(WebServices):
                     OrderLineObj = Partner.env['sale.order.line']
                     OrderLine = OrderLineObj.search([("id","=",line_id)]).sudo()
                     Order_id = OrderLine.order_id == Partner.last_mobikul_so_id and OrderLine.order_id
+                    last_order = Partner.last_mobikul_so_id.sudo()
+                    
                     if Order_id:
                         if request.httprequest.method == "PUT":
+                            get_qty_dic = mobikul_get_qty_availabilty(OrderLine.product_id)
+                            get_quantity = get_qty_dic.get("qty_available")
                             result = {'message': 'Updated successfully.'}
                             add_qty = None
                             set_qty = None
@@ -631,15 +654,23 @@ class MobikulApi(WebServices):
                                 add_qty = int(self._mData['add_qty'])
 
                             if add_qty or set_qty:
+                                present_qty = self.get_present_qty(OrderLine.product_id,order=last_order)
+                                if add_qty:
+                                    temp = float(present_qty) + float(add_qty)
+                                if set_qty:
+                                    temp  = float(set_qty)
                                 try:
-                                    Order_id.with_context(local)._mobikul_cart_update(
-                                        product_id=OrderLine.product_id.id,
-                                        line_id=OrderLine.id,
-                                        add_qty=add_qty and int(add_qty) or 0,
-                                        set_qty=set_qty and int(set_qty) or 0,
-                                        product_custom_attribute_values=False,
-                                        no_variant_attribute_values=False
-                                    )
+                                    if float(get_quantity) >= temp:
+                                        Order_id.with_context(local)._mobikul_cart_update(
+                                            product_id=OrderLine.product_id.id,
+                                            line_id=OrderLine.id,
+                                            add_qty=add_qty and int(add_qty) or 0,
+                                            set_qty=set_qty and int(set_qty) or 0,
+                                            product_custom_attribute_values=False,
+                                            no_variant_attribute_values=False
+                                        )
+                                    else:
+                                        result = {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
                                 except UserError as ue:
                                     result = {'message': ue.args[0]}
                             else:
