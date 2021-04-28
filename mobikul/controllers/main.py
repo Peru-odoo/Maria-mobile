@@ -90,7 +90,8 @@ class MobikulApi(WebServices):
                         'login', ""), 'pwd': self._mData.get('password', "")}
                 login = Mobikul.authenticate(cred, True, self._sLogin,
                                              context=context)
-                del login['context']
+                if login.get("context"):
+                    del login['context']
                 response.update({"login": login, "cred": cred})
                 homepage = Mobikul.homePage(self._mData, context)
                 homepage.update(self._languageData(Mobikul))
