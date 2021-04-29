@@ -160,7 +160,7 @@ class WebServices(Controller):
         request.context = dict(context)
         # Inorder to get the context updated mobikul object
         Mobikul = context['mobikul_obj']
-        if auth:
+        if auth or self.auth:
             result = Mobikul.authenticate(self._lcred, kwargs.get(
                 'detailed', False), self._sLogin, context=context)
             response.update(result)
