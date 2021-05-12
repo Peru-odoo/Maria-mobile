@@ -671,7 +671,7 @@ class MobikulApi(WebServices):
                                             no_variant_attribute_values=False
                                         )
                                     else:
-                                        result = {'success': False, 'message':_("Total")+" "+ str(check_res.get("get_quantity"))+ " "+_("quantity available")}
+                                        result = {'success': False, 'message':_("Total")+" "+ str(get_quantity)+ " "+_("quantity available")}
                                 except UserError as ue:
                                     result = {'message': ue.args[0]}
                             else:
