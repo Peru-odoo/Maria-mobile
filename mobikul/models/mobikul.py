@@ -663,7 +663,7 @@ class Mobikul(models.Model):
                             )
                             flag = 1
                         else:
-                            return {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
+                            return {'success': False, 'message':_("Total")+" "+ str(check_res.get("get_quantity"))+ " "+_("quantity available")}
                     except Exception as e:
                         return {'success': False, 'message': _('Exception Found : %r' % e)}
                 else:
@@ -683,7 +683,7 @@ class Mobikul(models.Model):
                             )
                             flag = 1
                         else:
-                            return {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
+                            return {'success': False, 'message':_("Total")+" "+ str(check_res.get("get_quantity"))+ " "+_("quantity available")}
                     except Exception as e:
                         return {'success': False, 'message': _('Exception Found : %r' % e)}
                 if resp.get('warning'):
