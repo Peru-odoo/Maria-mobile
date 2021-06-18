@@ -559,6 +559,9 @@
                         </group>
                     </page>
                     <page string="Extra Configuration">
+                        <group string="On Privacy Policy">
+                          <field name="privacy_policy" widget = "url"/>
+                        </group>
                         <group string="On Signup Terms and Conditions">
                           <field name="enable_term_and_condition"/>
                           <field name="signup_terms_and_condition" attrs="{'invisible': [('enable_term_and_condition', '=', False)]}" />

@@ -796,6 +796,7 @@ class Mobikul(models.Model):
                                    'mobikul_id', 'country_id', string='Countries')
     enable_term_and_condition = fields.Boolean(default=False, string='Enable Terms and Condition')
     signup_terms_and_condition = fields.Html(string='Terms and Condition', translate=True)
+    privacy_policy = fields.Char(string='Privacy Policy', translate=True)
     payment_short_terms = fields.Html(string='Payment Short Terms', required=True,
                                       default="Payment short Terms and Conditions Decription", translate=True)
     payment_long_terms = fields.Html(string='Payment Long Terms', required=True,

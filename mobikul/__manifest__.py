@@ -17,7 +17,7 @@
   "name"                 :  "Odoo Mobile App Builder ( Android & IOS )",
   "summary"              :  """This module allows you to convert your shop sales very easily with a native mobile application ( Android & IOS ).""",
   "category"             :  "Sales",
-  "version"              :  "1.4.2",
+  "version"              :  "1.4.3",
   "sequence"             :  1,
   "author"               :  "Webkul Software Pvt. Ltd.",
   "license"              :  "Other proprietary",

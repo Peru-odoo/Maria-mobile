@@ -29,6 +29,7 @@ class MobikulApi(WebServices):
                 response.update(result)
             result = Mobikul.getDefaultData()
             response.update(result)
+            response['privacy_policy_url'] = Mobikul.privacy_policy
             response['sortData'] = [
                 ("Price: High to Low", "price desc"),
                 ("Price: Low to High", "price asc"),
