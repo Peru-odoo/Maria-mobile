@@ -7,7 +7,7 @@
 from pdb import set_trace
 from odoo.addons.mobikul.tool.service import WebServices
 from odoo.addons.http_routing.models.ir_http import slug
-from odoo.addons.mobikul.tool.help import _displayWithCurrency, _get_image_url, _changePricelist, remove_htmltags, AQUIRER_REF_CODES, STATUS_MAPPING, _get_next_reference,EMPTY_ADDRESS
+from odoo.addons.mobikul.tool.help import _displayWithCurrency, _get_image_url,mobikul_get_qty_availabilty, _changePricelist, remove_htmltags, AQUIRER_REF_CODES, STATUS_MAPPING, _get_next_reference,EMPTY_ADDRESS
 from odoo import _
 from odoo.http import request, route
 from odoo.fields import Datetime, Date, Selection
@@ -90,7 +90,8 @@ class MobikulApi(WebServices):
                         'login', ""), 'pwd': self._mData.get('password', "")}
                 login = Mobikul.authenticate(cred, True, self._sLogin,
                                              context=context)
-                del login['context']
+                if login.get("context"):
+                    del login['context']
                 response.update({"login": login, "cred": cred})
                 homepage = Mobikul.homePage(self._mData, context)
                 homepage.update(self._languageData(Mobikul))
@@ -230,6 +231,9 @@ class MobikulApi(WebServices):
                     result['attributes'].append(temp)
 
                 comb_info = Template._get_combination_info(combination=False, product_id=False,add_qty=1, pricelist=local.get("pricelist"), parent_combination=False, only_template=False)
+                data = mobikul_get_qty_availabilty(Template.product_variant_id)
+                result.update(data)
+                
                 result.update({
                     'priceUnit'		: _displayWithCurrency(local.get('lang_obj'), comb_info['has_discounted_price'] and comb_info['list_price'] or comb_info['price'], local.get('currencySymbol'), local.get('currencyPosition')),
                     'priceReduce'	: comb_info['has_discounted_price'] and _displayWithCurrency(local.get('lang_obj'), comb_info['price'], local.get('currencySymbol'), local.get('currencyPosition')) or "",
@@ -252,6 +256,7 @@ class MobikulApi(WebServices):
                 if Template.product_variant_count > 1:
                     for var in Template.product_variant_ids:
                         comb_info = Template._get_combination_info(combination=False, product_id=var.id,add_qty=1, pricelist=local.get("pricelist"), parent_combination=False, only_template=False)
+                        data = mobikul_get_qty_availabilty(var)
                         temp = {
                             "productId": var.id,
                             'images': [_get_image_url(self.base_url, 'product.product', var.id, 'image_1920', var.write_date)] + prd_images,
@@ -261,6 +266,7 @@ class MobikulApi(WebServices):
                             "combinations": [],
                             "addedToWishlist": var.id in wishlist,
                         }
+                        temp.update(data)
                         for ptavi in var.product_template_attribute_value_ids:
                             temp["combinations"].append({
                                 "valueId": ptavi.product_attribute_value_id and ptavi.product_attribute_value_id.id,
@@ -558,6 +564,25 @@ class MobikulApi(WebServices):
             result.append(wishlist.product_id.id)
         return result
 
+    def get_present_qty(self, product_id,order, line_id=None):
+        sale_order_obj = request.env['sale.order.line'].sudo()
+        if line_id:
+            present_qty = sale_order_obj.browse([line_id]).product_uom_qty
+            return present_qty
+        else:
+            present_qty = 0
+            #order = request.website.sale_get_order()
+            if order:
+                order_lines = order.website_order_line
+            else:
+                order_lines = []
+            for line in order_lines:
+                line_product = sale_order_obj.browse([line.id]).product_id
+                if line_product.id == int(product_id):
+                    present_qty = sale_order_obj.browse([line.id]).product_uom_qty
+                    break
+            return present_qty
+
     @route(['/mobikul/mycart', '/mobikul/mycart/<int:line_id>'], csrf=False, type='http', auth="none", methods=['POST', 'PUT', 'DELETE'])
     def getMyCart(self, line_id=0, **kwargs):
         response = self._authenticate(True, **kwargs)
@@ -593,6 +618,7 @@ class MobikulApi(WebServices):
                                 }
                                 result.update({"delivery": shippingMethod})
                             else:
+                                data = mobikul_get_qty_availabilty(item.product_id)
                                 temp = {
                                     "lineId": item.id,
                                     "templateId": item.product_id and item.product_id.product_tmpl_id.id or "",
@@ -604,6 +630,7 @@ class MobikulApi(WebServices):
                                     "total": _displayWithCurrency(local.get('lang_obj'), item.price_subtotal, local.get('currencySymbol'), local.get('currencyPosition')),
                                     "discount": item.discount and "(%d%% OFF)" % item.discount or "",
                                 }
+                                temp.update(data)
                                 result['items'].append(temp)
                         if not len(result['items']):
                             result['message'] = _('Your Shopping Bag is empty.')
@@ -613,8 +640,12 @@ class MobikulApi(WebServices):
                     OrderLineObj = Partner.env['sale.order.line']
                     OrderLine = OrderLineObj.search([("id","=",line_id)]).sudo()
                     Order_id = OrderLine.order_id == Partner.last_mobikul_so_id and OrderLine.order_id
+                    last_order = Partner.last_mobikul_so_id.sudo()
+                    
                     if Order_id:
                         if request.httprequest.method == "PUT":
+                            get_qty_dic = mobikul_get_qty_availabilty(OrderLine.product_id)
+                            get_quantity = get_qty_dic.get("qty_available")
                             result = {'message': 'Updated successfully.'}
                             add_qty = None
                             set_qty = None
@@ -624,15 +655,23 @@ class MobikulApi(WebServices):
                                 add_qty = int(self._mData['add_qty'])
 
                             if add_qty or set_qty:
+                                present_qty = self.get_present_qty(OrderLine.product_id,order=last_order)
+                                if add_qty:
+                                    temp = float(present_qty) + float(add_qty)
+                                if set_qty:
+                                    temp  = float(set_qty)
                                 try:
-                                    Order_id.with_context(local)._mobikul_cart_update(
-                                        product_id=OrderLine.product_id.id,
-                                        line_id=OrderLine.id,
-                                        add_qty=add_qty and int(add_qty) or 0,
-                                        set_qty=set_qty and int(set_qty) or 0,
-                                        product_custom_attribute_values=False,
-                                        no_variant_attribute_values=False
-                                    )
+                                    if float(get_quantity) >= temp:
+                                        Order_id.with_context(local)._mobikul_cart_update(
+                                            product_id=OrderLine.product_id.id,
+                                            line_id=OrderLine.id,
+                                            add_qty=add_qty and int(add_qty) or 0,
+                                            set_qty=set_qty and int(set_qty) or 0,
+                                            product_custom_attribute_values=False,
+                                            no_variant_attribute_values=False
+                                        )
+                                    else:
+                                        result = {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
                                 except UserError as ue:
                                     result = {'message': ue.args[0]}
                             else:

@@ -4,12 +4,13 @@
 #    Copyright (c) 2015-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>)
 #
 ##########################################################################
-from odoo.addons.mobikul.tool.help import _displayWithCurrency, _lang_get, _default_unique_key, _get_image_url, _getProductData, _get_product_domain, _get_product_fields, _easy_date
+from odoo.addons.mobikul.tool.help import _displayWithCurrency, mobikul_get_qty_availabilty,_lang_get, _default_unique_key, _get_image_url, _getProductData, _get_product_domain, _get_product_fields, _easy_date
 from ast import literal_eval
 from odoo import api, fields, models, _, SUPERUSER_ID
 from datetime import datetime
 from odoo.exceptions import UserError
 import random
+from odoo.http import request
 import json
 import re
 from .fcmAPI import FCMAPI
@@ -256,8 +257,23 @@ class Mobikul(models.Model):
                 response['userId'] = user.id
                 response['cartCount'] = user.partner_id.last_mobikul_so_id and user.partner_id.last_mobikul_so_id.cart_count or 0
                 response['message'] = _('Login successfully.')
-                context.update({"partner": user.partner_id, "uid": user.id,
-                                "user": user, 'tz': user.tz})
+                context.update({
+                    "partner": user.partner_id,
+                    "uid": user.id,
+                    "user": user,
+                    'tz': user.tz,
+                })
+                #Updating Pricelist
+                pricelist_id = user.partner_id.property_product_pricelist
+                if pricelist_id:
+                    _logger.info("INside th ePricelist %r ,",pricelist_id)
+                    app_pricelist = self.env['product.pricelist'].sudo().browse(int(pricelist_id))
+                    context.update({ 
+                        "pricelist":app_pricelist,
+                        "currency_id": app_pricelist.currency_id.id,
+                        'currencySymbol': app_pricelist.currency_id.symbol or "",
+                        'currencyPosition': app_pricelist.currency_id.position or "",
+                        })
                 response["context"] = context
                 if self.check_mobikul_addons().get('wishlist'):
                     response['WishlistCount'] = len(user.partner_id.wishlist_ids)
@@ -603,8 +619,30 @@ class Mobikul(models.Model):
     def _active_languages(self):
         return self.env['res.lang'].search([]).ids
 
+
+    def get_present_qty(self, product_id,order, line_id=None):
+        sale_order_obj = self.env['sale.order.line'].sudo()
+        if line_id:
+            present_qty = sale_order_obj.browse([line_id]).product_uom_qty
+            return present_qty
+        else:
+            present_qty = 0
+            #order = request.website.sale_get_order()
+            if order:
+                order_lines = order.website_order_line
+            else:
+                order_lines = []
+            for line in order_lines:
+                line_product = sale_order_obj.browse([line.id]).product_id
+                if line_product.id == int(product_id):
+                    present_qty = sale_order_obj.browse([line.id]).product_uom_qty
+                    break
+            return present_qty
+
     def add_to_cart(self, product_id, set_qty, add_qty, context):
         Product = self.env["product.product"].sudo().browse(int(product_id))
+        get_qty_dic = mobikul_get_qty_availabilty(Product)
+        get_quantity = get_qty_dic.get("qty_available")
         Partner = context.get("partner")
         if Product:
             if Partner:
@@ -612,15 +650,20 @@ class Mobikul(models.Model):
                 flag = 0
                 resp = {}
                 if last_order:
+                    present_qty = self.get_present_qty(product_id=product_id,order=last_order)
+                    temp = float(present_qty) + float(add_qty)
                     try:
-                        resp = last_order.with_context(context)._mobikul_cart_update(
-                            product_id=int(product_id),
-                            add_qty=add_qty and int(add_qty) or 0,
-                            set_qty=set_qty and int(set_qty) or 0,
-                            product_custom_attribute_values=False,
-                            no_variant_attribute_values=False
-                        )
-                        flag = 1
+                        if float(get_quantity) >= temp:
+                            resp = last_order.with_context(context)._mobikul_cart_update(
+                                product_id=int(product_id),
+                                add_qty=add_qty and int(add_qty) or 0,
+                                set_qty=set_qty and int(set_qty) or 0,
+                                product_custom_attribute_values=False,
+                                no_variant_attribute_values=False
+                            )
+                            flag = 1
+                        else:
+                            return {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
                     except Exception as e:
                         return {'success': False, 'message': _('Exception Found : %r' % e)}
                 else:
@@ -628,14 +671,19 @@ class Mobikul(models.Model):
                     res = self._create_so(Partner, context)
                     last_order = res['order']
                     try:
-                        resp = last_order.with_context(context)._mobikul_cart_update(
-                            product_id=int(product_id),
-                            add_qty=add_qty and int(add_qty) or 0,
-                            set_qty=set_qty and int(set_qty) or 0,
-                            product_custom_attribute_values=False,
-                            no_variant_attribute_values=False
-                        )
-                        flag = 1
+                        present_qty = self.get_present_qty(product_id=product_id,order=last_order)
+                        temp = float(present_qty) + float(add_qty)
+                        if float(get_quantity) >= temp:
+                            resp = last_order.with_context(context)._mobikul_cart_update(
+                                product_id=int(product_id),
+                                add_qty=add_qty and int(add_qty) or 0,
+                                set_qty=set_qty and int(set_qty) or 0,
+                                product_custom_attribute_values=False,
+                                no_variant_attribute_values=False
+                            )
+                            flag = 1
+                        else:
+                            return {'success': False, 'message':_("Total %r quantity available" % get_quantity )}
                     except Exception as e:
                         return {'success': False, 'message': _('Exception Found : %r' % e)}
                 if resp.get('warning'):
