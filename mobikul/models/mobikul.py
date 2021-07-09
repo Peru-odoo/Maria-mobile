@@ -263,10 +263,15 @@ class Mobikul(models.Model):
                     "user": user,
                     'tz': user.tz,
                 })
+                #SalesPerson Customization 
+                """
+                    Check the salesperson in partner if present then set that else use 
+                    mobikul backend default salesperson
+                """
+                context["salespersonId"] = Partner.user_id.id or context["salespersonId"]
                 #Updating Pricelist
                 pricelist_id = user.partner_id.property_product_pricelist
                 if pricelist_id:
-                    _logger.info("INside th ePricelist %r ,",pricelist_id)
                     app_pricelist = self.env['product.pricelist'].sudo().browse(int(pricelist_id))
                     context.update({ 
                         "pricelist":app_pricelist,

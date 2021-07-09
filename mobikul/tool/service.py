@@ -220,6 +220,10 @@ class WebServices(Controller):
         last_order = user.partner_id.last_mobikul_so_id.sudo()
         if last_order and len(last_order.order_line):
             local = response.get('context', {})
+            #Salesperson_customization
+            """Check the salesperson is correct or not if not then update"""
+            if user.partner_id.user_id.id != last_order.user_id.id:
+                last_order.user_id = user.partner_id.user_id
             if self._mData.get('shippingAddressId'):
                 last_order.partner_shipping_id = int(self._mData.get('shippingAddressId'))
             if response.get('addons', {}).get('website_sale_delivery') and self._mData.get("shippingId"):
