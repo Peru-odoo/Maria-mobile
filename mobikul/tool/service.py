@@ -350,7 +350,7 @@ class WebServices(Controller):
             })
             if txn.state in ['pending', 'draft']:
                 last_order.write({'state': 'sent'})
-                if txn.state = "pending":
+                if txn.state == "pending":
                     txn._post_process_after_done()
                 result.update({'txn_msg': remove_htmltags(txn.acquirer_id.pending_msg)})
             elif txn.state == 'done':
