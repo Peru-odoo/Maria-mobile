@@ -34,7 +34,8 @@ class Mobikul(models.Model):
             'team_id': context.get("teamId"),
             'partner_invoice_id': partner.id,
             'partner_shipping_id': addr['delivery'],
-            'user_id': context.get("salespersonId")
+            'user_id': context.get("salespersonId"),
+            'website_id':context.get('website_id')
         }
         company = context.get("pricelist").company_id
         if company:
