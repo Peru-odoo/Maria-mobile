@@ -350,11 +350,11 @@ class WebServices(Controller):
             })
             if txn.state in ['pending', 'draft']:
                 last_order.write({'state': 'sent'})
-                # if txn.state == "pending":
-                #     try:
-                #         txn._post_process_after_done()
-                #     except Exception as e:
-                #         _logger.warning("THis is warning we get in process %r",e)
+                if txn.state == "pending":
+                    try:
+                        txn._post_process_after_done()
+                    except Exception as e:
+                        _logger.warning("THis is warning we get in process %r",e)
                 result.update({'txn_msg': remove_htmltags(txn.acquirer_id.pending_msg)})
             elif txn.state == 'done':
                 last_order.with_context(context).action_confirm()
